@@ -8,6 +8,15 @@
   --accent: #10b981;
 }
 
+/* fix horizontálneho scrollovania */
+html, body, #root { 
+  width: 100%; 
+  max-width: 100%; 
+  overflow-x: hidden; 
+}
+.wrap { overflow-x: hidden; }
+img, svg { max-width: 100%; height: auto; }
+
 * { box-sizing: border-box; }
 
 body {
@@ -29,6 +38,7 @@ body {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 16px;
+  flex-wrap: wrap; /* umožní zalomenie na mobile */
 }
 
 .brand {
@@ -44,12 +54,14 @@ body {
   display: flex;
   gap: 8px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .controls input[type="date"] {
   padding: 8px 10px;
   border: 1px solid var(--border);
   border-radius: 10px;
+  max-width: 180px; /* fix aby nepretláčalo */
 }
 
 .controls button {
@@ -103,6 +115,7 @@ body {
   padding: 16px;
   box-shadow: 0 6px 18px rgba(0,0,0,0.05);
   border: 1px solid var(--border);
+  overflow: hidden; /* fix overflow tieňov a obsahu */
 }
 
 .card.green { background: var(--green); }
@@ -142,9 +155,11 @@ body {
 }
 
 .weekly h3 { margin: 6px 0 12px; }
+
+/* fix weekly grid aby sa prispôsobil mobilu */
 .weekGrid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
   gap: 10px;
 }
 .dayCard {
@@ -153,6 +168,7 @@ body {
   border-radius: 12px;
   padding: 10px;
   text-align: center;
+  min-width: 0;
 }
 .dayPct { font-weight: 700; }
 .miniBar {
