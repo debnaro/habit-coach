@@ -126,11 +126,14 @@ body {
   font-size: 18px;
 }
 
+/* každý riadok návyku */
 .row {
+  position: relative;       /* umožní absolútne X */
   display: flex;
   gap: 12px;
   align-items: flex-start;
   padding: 10px 12px;
+  padding-right: 52px;      /* rezerva pre X tlačidlo */
   background: #fff;
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -144,6 +147,31 @@ body {
 
 .rowText .title { font-weight: 600; }
 .rowText .hint { font-size: 12px; color: var(--muted); }
+
+/* malé okrúhle X tlačidlo napravo */
+.xBtn {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  transition: background 0.2s, color 0.2s;
+}
+.xBtn:hover {
+  background: #fee2e2;
+  color: #ef4444;
+}
 
 .ifthen {
   font-size: 12px;
@@ -245,25 +273,3 @@ input, select, textarea, button {
   cursor: pointer;
 }
 .adderHint { margin-top: 6px; color: var(--muted); font-size: 12px; }
-
-/* malé okrúhle X tlačidlo na odstránenie */
-.xBtn {
-  margin-left: auto;
-  background: transparent;
-  border: none;
-  color: #9ca3af;
-  font-size: 20px;
-  line-height: 1;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  transition: background 0.2s, color 0.2s;
-}
-.xBtn:hover {
-  background: #fee2e2;
-  color: #ef4444;
-}
