@@ -38,10 +38,18 @@ function addDays(date: Date, delta: number) {
   d.setDate(d.getDate() + delta);
   return d;
 }
-
 function getLastNDates(n: number) {
   const base = new Date();
   return Array.from({ length: n }, (_, i) => addDays(base, -(n - 1 - i)));
+}
+function slugify(s: string) {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 40);
 }
 
 export default function App() {
@@ -49,10 +57,14 @@ export default function App() {
   const [logs, setLogs] = useState<Record<string, Record<string, boolean>>>({});
   const [ifThen, setIfThen] = useState(defaultIfThen);
   const [selectedDate, setSelectedDate] = useState(todayKey());
-  const [hydrated, setHydrated] = useState(false); // <- dôležité
+  const [hydrated, setHydrated] = useState(false);
+
+  // form na pridanie
+  const [newName, setNewName] = useState("");
+  const [newType, setNewType] = useState<"do" | "dont">("do");
   const dayLog = logs[selectedDate] || {};
 
-  // načítanie zo storage
+  // load
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -63,20 +75,17 @@ export default function App() {
         if (data.ifThen) setIfThen({ ...defaultIfThen, ...data.ifThen });
       }
     } catch {}
-    setHydrated(true); // <- až teraz označíme ako hotovo
+    setHydrated(true);
   }, []);
 
-  // zápis do storage (až po načítaní)
+  // save
   useEffect(() => {
     if (!hydrated) return;
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({ habits, logs, ifThen })
-    );
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ habits, logs, ifThen }));
   }, [habits, logs, ifThen, hydrated]);
 
-  const doHabits = useMemo(() => habits.filter(h => h.type === "do"), [habits]);
-  const dontHabits = useMemo(() => habits.filter(h => h.type === "dont"), [habits]);
+  const doHabits = useMemo(() => habits.filter((h) => h.type === "do"), [habits]);
+  const dontHabits = useMemo(() => habits.filter((h) => h.type === "dont"), [habits]);
 
   const percentComplete = useMemo(() => {
     const all = habits.length || 1;
@@ -85,10 +94,43 @@ export default function App() {
   }, [dayLog, habits]);
 
   function toggleHabit(id: string) {
-    setLogs(prev => {
+    setLogs((prev) => {
       const day = { ...(prev[selectedDate] || {}) };
       day[id] = !day[id];
       return { ...prev, [selectedDate]: day };
+    });
+  }
+
+  function addHabit() {
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+
+    // vytvor jedinečné id
+    const base = (newType === "do" ? "do_" : "dont_") + slugify(trimmed);
+    let id = base || (newType === "do" ? "do_custom" : "dont_custom");
+    let i = 1;
+    const ids = new Set(habits.map((h) => h.id));
+    while (ids.has(id)) {
+      id = `${base}_${i++}`;
+    }
+
+    const newHabit: Habit = { id, name: trimmed, type: newType };
+    setHabits((prev) => [...prev, newHabit]);
+    setNewName("");
+  }
+
+  function deleteHabit(habitId: string) {
+    // zmaž zo zoznamu návykov
+    setHabits((prev) => prev.filter((h) => h.id !== habitId));
+    // a vyčisti logy pre všetky dni
+    setLogs((prev) => {
+      const next: typeof prev = {};
+      for (const [dateKey, day] of Object.entries(prev)) {
+        const copy = { ...day };
+        delete copy[habitId];
+        next[dateKey] = copy;
+      }
+      return next;
     });
   }
 
@@ -109,6 +151,46 @@ export default function App() {
         </div>
       </header>
 
+      {/* PRIDÁVANIE NOVÝCH NÁVYKOV */}
+      <section className="card adder">
+        <h3>Pridať nový habit</h3>
+        <div className="adderRow">
+          <input
+            className="textInput"
+            placeholder="Názov (napr. 10 min chôdza)"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") addHabit();
+            }}
+          />
+          <div className="typeToggle">
+            <label>
+              <input
+                type="radio"
+                name="habitType"
+                value="do"
+                checked={newType === "do"}
+                onChange={() => setNewType("do")}
+              />
+              <span>CHCEM</span>
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="habitType"
+                value="dont"
+                checked={newType === "dont"}
+                onChange={() => setNewType("dont")}
+              />
+              <span>NECHCEM</span>
+            </label>
+          </div>
+          <button className="primaryBtn" onClick={addHabit}>Pridať</button>
+        </div>
+        <div className="adderHint">Tip: stlač Enter pre rýchle pridanie</div>
+      </section>
+
       <section className="progress">
         <div className="bar">
           <div className="barFill" style={{ width: `${percentComplete}%` }} />
@@ -119,7 +201,7 @@ export default function App() {
       <main className="grid">
         <section className="card green">
           <h2>CHCEM</h2>
-          {doHabits.map(h => (
+          {doHabits.map((h) => (
             <label key={h.id} className="row">
               <input
                 type="checkbox"
@@ -130,13 +212,16 @@ export default function App() {
                 <div className="title">{h.name}</div>
                 <div className="hint">Zaškrtni, keď si vykonal</div>
               </div>
+              <button className="xBtn" onClick={() => deleteHabit(h.id)} aria-label="Odstrániť">
+                ×
+              </button>
             </label>
           ))}
         </section>
 
         <section className="card red">
           <h2>NECHCEM</h2>
-          {dontHabits.map(h => (
+          {dontHabits.map((h) => (
             <div key={h.id} className="stack">
               <label className="row">
                 <input
@@ -148,6 +233,9 @@ export default function App() {
                   <div className="title">{h.name}</div>
                   <div className="hint">Zaškrtni, keď si odolal</div>
                 </div>
+                <button className="xBtn" onClick={() => deleteHabit(h.id)} aria-label="Odstrániť">
+                  ×
+                </button>
               </label>
               {ifThen[h.id] && <div className="ifthen">{ifThen[h.id]}</div>}
             </div>
@@ -158,7 +246,7 @@ export default function App() {
       <section className="card weekly">
         <h3>Tento týždeň</h3>
         <div className="weekGrid">
-          {weekDates.map(d => {
+          {weekDates.map((d) => {
             const key = d.toISOString().slice(0, 10);
             const dl = logs[key] || {};
             const total = habits.length || 1;
@@ -180,7 +268,7 @@ export default function App() {
       </section>
 
       <footer className="foot">
-        <div>🟢 PWA pripravené — po nasadení na web si to vieš pridať na plochu v Androide.</div>
+        <div>🟢 PWA pripravené — pridať na plochu v Androide.</div>
       </footer>
     </div>
   );
